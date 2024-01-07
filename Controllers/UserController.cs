@@ -1,5 +1,4 @@
-﻿// Controllers/UserController.cs
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using _2001_microservice.Data;
 using _2001_microservice.Models;
@@ -8,6 +7,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
+using System.Diagnostics;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -28,7 +28,7 @@ public class UserController : ControllerBase
             .Select(profile => new
             {
                 UserId = profile.UserId,
-                Username = profile.User.Username, // Use UserName instead of Username
+                Username = profile.User.Username,
                 ProfileId = profile.ProfileId,
                 ProfilePicture = profile.ProfilePicture,
                 AboutMe = profile.AboutMe,
@@ -44,94 +44,139 @@ public class UserController : ControllerBase
         return Ok(userData);
     }
 
-    public class UpdateUserRequest
+        public class UpdateUserRequest
     {
         public string Username { get; set; }
         public string Password { get; set; }
         public string? AboutMe { get; set; }
         public string EmailAddress { get; set; }
-        public byte[]? ProfilePicture { get; set; }
+        public string UnitPreferences { get; set; }
         public string MarketingLanguage { get; set; }
         public string TimePreferences { get; set; }
-
-        // Add other properties as needed
     }
 
-    private UserManager AuthenticateUser(string username, string password)
+    private bool AuthenticateUser(string username, string password)
     {
-        // Retrieve the user based on the provided credentials
         var user = _context.Users
             .Include(u => u.UserProfiles)
             .Include(u => u.UserPreferences)
             .FirstOrDefault(u => u.Username == username);
 
-        // Check if the user exists and the password is correct
-        if (user != null && VerifyPassword(user.hashedPassword, password))
-        {
-            return user;
-        }
-
-        return null;
+        return user != null && user.Password == password;
     }
+
+
 
     [HttpPut("update")]
     public IActionResult UpdateUser([FromBody] UpdateUserRequest request)
     {
-        // Step 1: Receive User Credentials
         string username = request.Username;
         string password = request.Password;
 
-        // Step 2: Authenticate User
-        var authenticatedUser = AuthenticateUser(username, password);
+        var isUserAuthenticated = AuthenticateUser(username, password);
 
-        if (authenticatedUser == null)
+        if (!isUserAuthenticated)
         {
             return Unauthorized("Invalid username or password.");
         }
 
-        // Step 3: Verify Password and Update User Data
+
         try
         {
-            // Verify the entered password with the stored hashed password
-            if (!VerifyPassword(authenticatedUser.PasswordHash, password))
+            var userProfile = _context.UserProfiles.FirstOrDefault(u => u.User.Username == username);
+            var userPreferences = _context.UserPreferences.FirstOrDefault(u => u.User.Username == username);
+            var user = _context.Users.FirstOrDefault(u => u.Username == username);
+
+            if (request.AboutMe != "string")
             {
-                return Unauthorized("Invalid username or password.");
+                userProfile.AboutMe = request.AboutMe;
             }
 
-            // Update user data based on the provided parameters
-            authenticatedUser.UserProfiles.AboutMe = request.AboutMe;
-            authenticatedUser.UserProfiles.EmailAddress = request.EmailAddress;
-            authenticatedUser.UserProfiles.Image = request.ProfilePicture;
-            authenticatedUser.UserPreferences.MarketingLanguage = request.MarketingLanguage;
-            authenticatedUser.UserPreferences.TimePreferences = request.TimePreferences;
+            if (request.EmailAddress != "string")
+            {
+                user.EmailAddress = request.EmailAddress;
+            }
 
-            // You can similarly update other properties like username and password if needed
+            if (request.MarketingLanguage != "string")
+            {
+                userPreferences.MarketingLanguage = request.MarketingLanguage;
+            }
 
-            // Save changes to the database
+            if (request.TimePreferences != "string")
+            {
+                userPreferences.TimePreferences = request.TimePreferences;
+            }
+            
+            if (request.UnitPreferences != "string")
+            {
+                userPreferences.UnitPreferences = request.UnitPreferences;
+            }
+
             _context.SaveChanges();
 
             return Ok("User data updated successfully.");
         }
         catch (Exception ex)
         {
-            // Handle exceptions (e.g., validation errors, database errors)
             return BadRequest($"Failed to update user data. {ex.Message}");
         }
     }
 
-    // Method to hash a password using SHA-512
-    private string HashPassword(string password)
+    public class CreateUserRequest
     {
-        using (SHA512 sha512 = SHA512.Create())
-        {
-            byte[] hashedBytes = sha512.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
-        }
+        public string Username { get; set; }
+        public string Password { get; set; }
+        public string EmailAddress { get; set; }
     }
 
-    // Method to verify a password against a hashed password
-    private bool VerifyPassword(string hashedPassword, string providedPassword)
+    [HttpPost("create")]
+    public IActionResult CreateUser([FromBody] CreateUserRequest request)
     {
-        return HashPassword(providedPassword) == hashedPassword;
+        if (_context.Users.Any(u => u.Username == request.Username || u.EmailAddress == request.EmailAddress))
+        {
+            return Conflict("Username or email address is already taken.");
+        }
+
+        try
+        {
+            var lastUser = _context.Users.OrderByDescending(u => u.UserId).FirstOrDefault();
+
+            int nextUserId = (lastUser != null) ? lastUser.UserId + 1 : 1;
+
+            var user = new Users
+            {
+                UserId = nextUserId,
+                Username = request.Username,
+                Password = request.Password, 
+                EmailAddress = request.EmailAddress
+
+            };
+
+            
+            var userProfile = new UserProfiles
+            {
+                UserId = nextUserId,
+                ProfileId = nextUserId
+                
+            };
+
+            var userPreferences = new UserPreferences
+            {
+                UserId = nextUserId,
+                PrefID = nextUserId
+            };
+
+            _context.Users.Add(user);
+            _context.UserProfiles.Add(userProfile);
+            _context.UserPreferences.Add(userPreferences);
+
+            _context.SaveChanges();
+
+            return Ok($"User {request.Username} created successfully.");
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Failed to create user. {ex.Message}");
+        }
     }
 }

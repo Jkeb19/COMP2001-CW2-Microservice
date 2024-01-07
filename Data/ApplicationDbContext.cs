@@ -5,7 +5,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace _2001_microservice.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+    public class ApplicationDbContext : IdentityDbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
@@ -24,23 +24,24 @@ namespace _2001_microservice.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure the schema for each DbSet
-            modelBuilder.Entity<Users>().ToTable("Users", "CW1")
-                        .HasKey(u => u.UserId);
+            modelBuilder.Entity<Users>().ToTable("Users", "CW2")
+                .HasKey(u => u.UserId);
 
-            modelBuilder.Entity<UserProfiles>().ToTable("UserProfiles", "CW1")
-                        .HasKey(up => up.ProfileId);
-                        
+            modelBuilder.Entity<UserProfiles>().ToTable("UserProfiles", "CW2")
+                .HasKey(up => up.ProfileId);
 
-            modelBuilder.Entity<UserPreferences>().ToTable("UserPreferences", "CW1").HasNoKey();
-            modelBuilder.Entity<UserCreationLog>().ToTable("UserCreationLog", "CW1").HasNoKey();
-            modelBuilder.Entity<Admin>().ToTable("Admin", "CW1")
+            modelBuilder.Entity<UserPreferences>().ToTable("UserPreferences", "CW2")
+                .HasKey(p => p.PrefID);             
+                
+
+            modelBuilder.Entity<UserCreationLog>().ToTable("UserCreationLog", "CW2").HasNoKey();
+            modelBuilder.Entity<Admin>().ToTable("Admin", "CW2")
                 .HasKey(a => a.AdminId);
 
-            modelBuilder.Entity<UserTrails>().ToTable("UserTrails", "CW1").HasKey(ut => ut.TrailId);
+            modelBuilder.Entity<UserTrails>().ToTable("UserTrails", "CW2").HasKey(ut => ut.TrailId);
 
 
-            // Add any additional configurations or relationships here
+            
         }
     }
 }
