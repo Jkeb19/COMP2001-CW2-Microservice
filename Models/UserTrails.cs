@@ -8,7 +8,7 @@ namespace _2001_microservice.Models
 
         [Key]
         public int TrailId { get; set; }
-
+        public string TrailName { get; set; }
 
     }
 }
