@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <Compile Remove="AuthApiService.cs" />
+    <Compile Remove="Models\ErrorViewModel.cs" />
+    <Compile Remove="Models\UserCreationLog.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -15,7 +15,6 @@ namespace _2001_microservice.Data
         public DbSet<Users> Users { get; set; }
         public DbSet<UserProfiles> UserProfiles { get; set; }
         public DbSet<UserPreferences> UserPreferences { get; set; }
-        public DbSet<UserCreationLog> UserCreationLog { get; set; }
         public DbSet<Admin> Admin { get; set; }
         public DbSet<UserTrails> UserTrails { get; set; }
 
@@ -33,8 +32,6 @@ namespace _2001_microservice.Data
             modelBuilder.Entity<UserPreferences>().ToTable("UserPreferences", "CW2")
                 .HasKey(p => p.PrefID);             
                 
-
-            modelBuilder.Entity<UserCreationLog>().ToTable("UserCreationLog", "CW2").HasNoKey();
             modelBuilder.Entity<Admin>().ToTable("Admin", "CW2")
                 .HasKey(a => a.AdminId);
 
